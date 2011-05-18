@@ -13,6 +13,7 @@ void increase ( GtkWidget *widget, gpointer label )
 	gtk_label_set_text(label, buf);
 }
 
+
 void decrease ( GtkWidget *widget, gpointer label) 
 {
 	count --;
@@ -74,11 +75,11 @@ void show_about(GtkWidget *widget, gpointer data)
 
 int main( int argc, char * argv[] )
 {
-	GtkWidget * window;
-	GtkWidget *label;
-	GtkWidget *frame;
-	GtkWidget *plus;
-	GtkWidget *minus;
+	GtkWidget *window;
+	GtkWidget *selected;
+	GtkWidget *bottom;
+	GtkWidget *add;
+	GtkWidget *remove;
 
 	GtkWidget * container;
 
@@ -96,6 +97,9 @@ int main( int argc, char * argv[] )
 	GtkWidget *about;
 	GtkWidget *help;
 
+
+	GtkWidget *bottom_separator;
+
 	GtkWidget *darea;
 
 
@@ -106,29 +110,24 @@ int main( int argc, char * argv[] )
 
 	window = gtk_window_new ( GTK_WINDOW_TOPLEVEL );
 	gtk_window_set_title( GTK_WINDOW ( window ), "Phil's new gig");
-	gtk_window_set_default_size ( GTK_WINDOW ( window ), 250, 200 );
+	gtk_window_set_default_size ( GTK_WINDOW ( window ), 600, 500 );
 	gtk_window_set_position ( GTK_WINDOW ( window ), GTK_WIN_POS_CENTER );
 	gtk_window_set_icon ( GTK_WINDOW(window), create_pixbuf ( "icon.png" ) );
 
 
 	darea = gtk_drawing_area_new();
 
+
+	// initialization menu items
 	container = gtk_vbox_new(FALSE, 0);
-	frame = gtk_fixed_new();
+	bottom = gtk_hbox_new(FALSE, 0);
 	vbox = gtk_vbox_new(FALSE, 0);
 	menubar = gtk_menu_bar_new();
 	filemenu= gtk_menu_new();
 	prefs_menu= gtk_menu_new();
-	help_menu = gtk_menu_new();
-
-
-	gtk_box_pack_start(GTK_BOX(container), vbox, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(container), darea, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(container), frame, TRUE,TRUE, 0);
-
-	gtk_container_add(GTK_CONTAINER(window), container );
 	accel_group = gtk_accel_group_new();
 	gtk_window_add_accel_group(GTK_WINDOW ( window ), accel_group );
+	help_menu = gtk_menu_new();
 
 	help = gtk_menu_item_new_with_label("Help");
 	about = gtk_menu_item_new_with_label("About");
@@ -157,27 +156,40 @@ int main( int argc, char * argv[] )
 	gtk_menu_shell_append( GTK_MENU_SHELL(menubar), help );
 	gtk_box_pack_start ( GTK_BOX(vbox), menubar, FALSE, FALSE, 3);
 
+	gtk_container_add(GTK_CONTAINER(window), container );
+	
+	// END init menu 
 
 
-	plus = gtk_button_new_with_label("+");
-	gtk_widget_set_size_request ( plus, 80, 35 );
-	gtk_fixed_put ( GTK_FIXED(frame), plus, 50, 20 );
+	bottom_separator = gtk_hseparator_new();
 
-	minus = gtk_button_new_with_label("-");
-	gtk_widget_set_size_request ( minus, 80, 35 );
-	gtk_fixed_put ( GTK_FIXED(frame), minus, 50, 80 );
+	add = gtk_button_new_with_label("Add");
+	gtk_widget_set_size_request ( add, 80, 35 );
+	gtk_box_pack_start ( GTK_BOX(bottom), add, FALSE, FALSE, 3 );
 
-	label = gtk_label_new("0");
-	gtk_fixed_put ( GTK_FIXED(frame), label, 190,58);
+	remove = gtk_button_new_with_label("Remove");
+	gtk_widget_set_size_request ( remove, 80, 35 );
+	gtk_box_pack_start ( GTK_BOX(bottom), remove, FALSE, FALSE, 3 );
+
+	selected = gtk_label_new("Nothing");
+	gtk_box_pack_start ( GTK_BOX(bottom), selected, FALSE, FALSE, 3 );
+
+	gtk_widget_set_size_request( bottom, 50, 50 );
 
 	
 	g_signal_connect ( G_OBJECT ( window), "destroy", G_CALLBACK(gtk_main_quit), NULL );
-	g_signal_connect (plus, "clicked", G_CALLBACK(increase), label);
-	g_signal_connect (minus, "clicked", G_CALLBACK(decrease), label);
+//	g_signal_connect (add, "clicked", G_CALLBACK(increase), selected);
+//	g_signal_connect (remove, "clicked", G_CALLBACK(decrease), selected);
 	g_signal_connect (darea, "expose-event", G_CALLBACK(on_expose_event), NULL);
 	g_signal_connect (G_OBJECT(quit), "activate", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect (G_OBJECT(about), "activate", G_CALLBACK(show_about), G_OBJECT(window));
 
+	gtk_box_pack_start(GTK_BOX(container), vbox, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(container), darea, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(container), bottom_separator, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(container), bottom, FALSE,FALSE, 0);
+
+	gtk_container_set_border_width (GTK_CONTAINER (bottom), 10);
 
 	g_timeout_add(1000, (GSourceFunc) time_handler, (gpointer) window);
 
