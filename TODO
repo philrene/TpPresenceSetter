@@ -5,7 +5,7 @@ Have main list on when the page opens
 	2 buttons: add the list ( pops a dialog wait for user input and put it in the list )
 	           remove from the list
 	when the app is running, a special msg is shown to the user for the current status being used. Maybe highlighting it
-
+	add notification with libnotify
 Preference:
 	2 choice: 
 		Select the accounts you want to be used with
