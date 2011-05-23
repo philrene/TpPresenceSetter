@@ -2,24 +2,21 @@
 #include <gdk/gdkkeysyms.h>
 #include <cairo.h>
 #include <time.h>
+#include "config.h"
 
 gint count = 0;
 char buf[5];
 static char buffer[256];
-void increase ( GtkWidget *widget, gpointer label )
+enum
 {
-	count ++;
-	sprintf(buf, "%d", count);
-	gtk_label_set_text(label, buf);
-}
+	LIST_ITEM=0,
+	N_COLUMNS
+};
 
-
-void decrease ( GtkWidget *widget, gpointer label) 
-{
-	count --;
-	sprintf(buf, "%d", count );
-	gtk_label_set_text( label, buf );
-}
+GtkWidget *list;
+GtkWidget *add_wnd;
+void add_to_list_cb ( GtkWidget *widget, gpointer view );
+void destroy_add_wnd ( );
 
 GdkPixbuf *create_pixbuf ( const gchar *filename ){
 	GdkPixbuf *pixbuf;
@@ -30,6 +27,55 @@ GdkPixbuf *create_pixbuf ( const gchar *filename ){
 		g_error_free( error );
 	}
 	return pixbuf;
+}
+
+void destroy_add_wnd (  ){
+	gtk_widget_destroy ( GTK_WINDOW( add_wnd ));
+}
+/*
+ * Creating the window to add a status to the list
+ */
+
+void show_add_to_list ( GtkWidget *widget, gpointer list)
+{
+	GtkWidget *container;
+	GtkWidget *view_window;
+        GtkWidget *view;
+	GtkWidget *add_wnd_add_button;
+	GtkWidget *add_wnd_cancel_button;
+
+	view = gtk_text_view_new();	
+	gtk_text_view_set_wrap_mode( view, GTK_WRAP_WORD );
+
+	add_wnd = gtk_window_new ( GTK_WINDOW_TOPLEVEL );
+	view_window = gtk_scrolled_window_new ( NULL, NULL );
+	gtk_scrolled_window_set_policy ( view_window, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC ); 
+	gtk_window_set_title( GTK_WINDOW ( add_wnd ), "Add a status");
+	gtk_window_set_modal( add_wnd, TRUE);
+	gtk_window_set_default_size ( GTK_WINDOW ( add_wnd ), 600, 300 );
+	gtk_window_set_position ( GTK_WINDOW ( add_wnd ), GTK_WIN_POS_CENTER );
+	gtk_window_set_icon ( GTK_WINDOW( add_wnd ), create_pixbuf ( "icon.png" ) );
+
+
+
+	container = gtk_vbox_new ( FALSE, 0 );
+	gtk_box_pack_start(GTK_BOX(container), view_window, TRUE, TRUE, 0);
+
+	add_wnd_add_button = gtk_button_new_with_label("Add Status");
+	gtk_widget_set_size_request ( add_wnd_add_button, 80, 35 );
+	gtk_box_pack_start ( GTK_BOX(container), add_wnd_add_button, FALSE, FALSE, 3 );
+	add_wnd_cancel_button = gtk_button_new_with_label("Cancel");
+	gtk_widget_set_size_request ( add_wnd_cancel_button, 80, 35 );
+	gtk_box_pack_start ( GTK_BOX(container), add_wnd_cancel_button, FALSE, FALSE, 3 );
+
+
+	g_signal_connect (add_wnd_add_button, "clicked", G_CALLBACK(add_to_list_cb), view);
+	g_signal_connect (add_wnd_cancel_button, "clicked", destroy_add_wnd, NULL);
+
+	gtk_container_add(GTK_CONTAINER(view_window), view );
+	gtk_container_add(GTK_CONTAINER(add_wnd), container );
+	
+	gtk_widget_show_all( add_wnd );
 }
 
 static gboolean
@@ -72,11 +118,76 @@ void show_about(GtkWidget *widget, gpointer data)
 	gtk_widget_destroy(dialog);
 }
 
+static void
+init_list( GtkWidget * list)
+{
+	GtkCellRendererText *renderer;
+	GtkTreeViewColumn *column;
+	GtkListStore *store;
+
+	renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_set_fixed_size ( renderer, 200, -1 );
+	column = gtk_tree_view_column_new_with_attributes("List of statuses", renderer, "text", LIST_ITEM, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+	store = gtk_list_store_new(N_COLUMNS, G_TYPE_STRING);
+
+	gtk_tree_view_set_model(GTK_TREE_VIEW(list), GTK_TREE_MODEL(store));
+
+	g_object_unref(store);
+}
+
+static void
+add_to_list(GtkWidget *list, const gchar *str)
+{
+	  GtkListStore *store;
+	  GtkTreeIter iter;
+	  store = GTK_LIST_STORE(gtk_tree_view_get_model
+			            (GTK_TREE_VIEW(list)));
+	  gtk_list_store_append(store, &iter);
+	  gtk_list_store_set(store, &iter, LIST_ITEM, str, -1);
+}
+
+
+void add_to_list_cb ( GtkWidget *widget, gpointer view )
+{
+ 	GtkTextBuffer * buffer;
+	buffer = gtk_text_view_get_buffer ( GTK_TEXT_VIEW (view) );
+
+	GtkTextIter start, end;
+	gtk_text_buffer_get_start_iter(buffer, &start);
+	gtk_text_buffer_get_end_iter(buffer, &end);
+
+
+	const gchar *str = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
+
+	add_to_list ( list, str ); 
+
+	save_list( list );
+
+	destroy_add_wnd();
+}
+
+void remove_from_list ( GtkWidget *widget, gpointer selection )
+{
+	GtkListStore *store;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	store = GTK_LIST_STORE ( gtk_tree_view_get_model( GTK_TREE_VIEW(list)));
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW ( list ));
+
+	if ( gtk_tree_model_get_iter_first ( model, &iter ) == FALSE)
+		return;
+
+	if ( gtk_tree_selection_get_selected(GTK_TREE_SELECTION(selection), &model, &iter)){
+		gtk_list_store_remove(store, &iter );
+	}
+}
 
 int main( int argc, char * argv[] )
 {
 	GtkWidget *window;
-	GtkWidget *selected;
+	GtkWidget *list_window;
 	GtkWidget *bottom;
 	GtkWidget *add;
 	GtkWidget *remove;
@@ -98,6 +209,7 @@ int main( int argc, char * argv[] )
 	GtkWidget *help;
 
 
+	GtkTreeSelection *list_selection;
 	GtkWidget *bottom_separator;
 
 	GtkWidget *darea;
@@ -107,8 +219,14 @@ int main( int argc, char * argv[] )
 	GtkAccelGroup *accel_group = NULL;
 
 	gtk_init ( &argc, &argv );
+	list = gtk_tree_view_new();
+	gtk_tree_view_set_headers_visible( GTK_TREE_VIEW(list), FALSE );
+	list_selection  = gtk_tree_view_get_selection(GTK_TREE_VIEW(list));
+	init_list( list );
 
 	window = gtk_window_new ( GTK_WINDOW_TOPLEVEL );
+	list_window = gtk_scrolled_window_new ( NULL, NULL );
+	gtk_scrolled_window_set_policy ( list_window, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC );
 	gtk_window_set_title( GTK_WINDOW ( window ), "Phil's new gig");
 	gtk_window_set_default_size ( GTK_WINDOW ( window ), 600, 500 );
 	gtk_window_set_position ( GTK_WINDOW ( window ), GTK_WIN_POS_CENTER );
@@ -157,6 +275,7 @@ int main( int argc, char * argv[] )
 	gtk_box_pack_start ( GTK_BOX(vbox), menubar, FALSE, FALSE, 3);
 
 	gtk_container_add(GTK_CONTAINER(window), container );
+	gtk_container_add(GTK_CONTAINER(list_window), list );
 	
 	// END init menu 
 
@@ -171,21 +290,19 @@ int main( int argc, char * argv[] )
 	gtk_widget_set_size_request ( remove, 80, 35 );
 	gtk_box_pack_start ( GTK_BOX(bottom), remove, FALSE, FALSE, 3 );
 
-	selected = gtk_label_new("Nothing");
-	gtk_box_pack_start ( GTK_BOX(bottom), selected, FALSE, FALSE, 3 );
 
 	gtk_widget_set_size_request( bottom, 50, 50 );
 
 	
 	g_signal_connect ( G_OBJECT ( window), "destroy", G_CALLBACK(gtk_main_quit), NULL );
-//	g_signal_connect (add, "clicked", G_CALLBACK(increase), selected);
-//	g_signal_connect (remove, "clicked", G_CALLBACK(decrease), selected);
+	g_signal_connect (add, "clicked", G_CALLBACK(show_add_to_list), window);
+	g_signal_connect (remove, "clicked", G_CALLBACK(remove_from_list),list_selection);
 	g_signal_connect (darea, "expose-event", G_CALLBACK(on_expose_event), NULL);
 	g_signal_connect (G_OBJECT(quit), "activate", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect (G_OBJECT(about), "activate", G_CALLBACK(show_about), G_OBJECT(window));
 
-	gtk_box_pack_start(GTK_BOX(container), vbox, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(container), darea, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(container), vbox, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(container), list_window, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(container), bottom_separator, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(container), bottom, FALSE,FALSE, 0);
 
@@ -194,6 +311,20 @@ int main( int argc, char * argv[] )
 	g_timeout_add(1000, (GSourceFunc) time_handler, (gpointer) window);
 
 	gtk_widget_show_all( window );
+
+	// just for chilling
+
+	int o = 1;
+for( o = 0; o < 15; o++ ){
+
+	char  str[50];
+
+	sprintf(str,"dude that's cool %d", o);
+
+	add_to_list ( list, &str);
+
+}
+
 
 	time_handler(window);
 	gtk_main ();
