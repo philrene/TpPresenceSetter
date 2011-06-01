@@ -1,6 +1,6 @@
 PROGS     = gui
 CXX	= gcc
-CSRCS     = main.c config.c
+CSRCS     = main.c
 
 OBJS      = $(CSRCS:.c=.o)
 

@@ -2,8 +2,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <cairo.h>
 #include <time.h>
-#include "config.h"
 
+#define PERIOD 3000
 gint count = 0;
 char buf[5];
 static char buffer[256];
@@ -15,6 +15,8 @@ enum
 
 GtkWidget *list;
 GtkWidget *add_wnd;
+
+GtkTreeIter current;
 void add_to_list_cb ( GtkWidget *widget, gpointer view );
 void destroy_add_wnd ( );
 
@@ -78,30 +80,45 @@ void show_add_to_list ( GtkWidget *widget, gpointer list)
 	gtk_widget_show_all( add_wnd );
 }
 
-static gboolean
-on_expose_event ( GtkWidget * widget,
-		GdkEventExpose *event,
-		gpointer data)
-{
-	cairo_t *cr;
-	cr =gdk_cairo_create( widget->window);
-	cairo_move_to(cr, 10, 10);
-	cairo_show_text(cr, buffer);
-	cairo_destroy(cr);
-	return FALSE;
-}
 
 static gboolean
-time_handler(GtkWidget *widget)
+time_handler(GtkWidget *selection)
 {
-	if ( widget->window == NULL) return FALSE;
-	time_t curtime;
-	struct tm * loctime;
-	curtime = time(NULL);
-	loctime = localtime (&curtime);
-	strftime( buffer, 256, "%T", loctime);
 
-	gtk_widget_queue_draw(widget);
+	fprintf(stderr,"Being called my friend\n");
+
+	GtkListStore *store;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	store = GTK_LIST_STORE ( gtk_tree_view_get_model( GTK_TREE_VIEW(list)));
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW ( list ));
+
+	if ( gtk_tree_model_get_iter_first ( model, &iter ) == FALSE)
+		return TRUE; // nothing to do there is nothing in the queue
+
+	if ( ! gtk_tree_model_iter_next  ( model, &current ) ){
+		fprintf(stderr, "current is NULL my dear/dead friend\n");
+		gtk_tree_model_get_iter_first ( model, &iter );
+		current = iter;
+	}
+
+
+	fprintf(stderr, "Unbeliveable nice\n");
+	GValue *itemvalue;
+
+	g_type_init();
+	itemvalue=g_new0(GValue, 1);
+	g_value_init(itemvalue, G_TYPE_STRING);
+
+	gtk_tree_model_get_value( model, &current, 0, itemvalue );
+
+	fprintf(stderr, "Unbeliveable nice 2\n");
+	g_printf("YYYYYYYYYYAAAAAAAAAAAAA  %s\n", g_value_get_string(itemvalue));
+
+	fprintf(stderr, "Unbeliveable nice 3\n");
+
+
 	return TRUE;
 }
 
@@ -132,6 +149,8 @@ init_list( GtkWidget * list)
 	store = gtk_list_store_new(N_COLUMNS, G_TYPE_STRING);
 
 	gtk_tree_view_set_model(GTK_TREE_VIEW(list), GTK_TREE_MODEL(store));
+	gtk_tree_view_set_enable_search( GTK_TREE_VIEW(list), FALSE );
+	gtk_tree_view_set_reorderable( GTK_TREE_VIEW(list), TRUE );
 
 	g_object_unref(store);
 }
@@ -162,7 +181,6 @@ void add_to_list_cb ( GtkWidget *widget, gpointer view )
 
 	add_to_list ( list, str ); 
 
-	save_list( list );
 
 	destroy_add_wnd();
 }
@@ -198,11 +216,6 @@ int main( int argc, char * argv[] )
 	GtkWidget *menubar;
 	GtkWidget *filemenu;
 	GtkWidget *file;
-	GtkWidget *preferences;
-	GtkWidget *prefs_menu;
-	GtkWidget *edit;
-	GtkWidget *new;
-	GtkWidget *open;
 	GtkWidget *quit;
 	GtkWidget *help_menu;
 	GtkWidget *about;
@@ -215,7 +228,6 @@ int main( int argc, char * argv[] )
 	GtkWidget *darea;
 
 
-	GtkWidget *sep;
 	GtkAccelGroup *accel_group = NULL;
 
 	gtk_init ( &argc, &argv );
@@ -242,35 +254,22 @@ int main( int argc, char * argv[] )
 	vbox = gtk_vbox_new(FALSE, 0);
 	menubar = gtk_menu_bar_new();
 	filemenu= gtk_menu_new();
-	prefs_menu= gtk_menu_new();
 	accel_group = gtk_accel_group_new();
 	gtk_window_add_accel_group(GTK_WINDOW ( window ), accel_group );
 	help_menu = gtk_menu_new();
 
+	file = gtk_menu_item_new_with_mnemonic("_File");
 	help = gtk_menu_item_new_with_label("Help");
 	about = gtk_menu_item_new_with_label("About");
-	file = gtk_menu_item_new_with_mnemonic("_File");
-	new = gtk_image_menu_item_new_from_stock ( GTK_STOCK_NEW, NULL);
-	open = gtk_image_menu_item_new_from_stock ( GTK_STOCK_OPEN, NULL);
 	quit = gtk_image_menu_item_new_from_stock ( GTK_STOCK_QUIT, accel_group);
-	sep = gtk_separator_menu_item_new();
-	edit = gtk_menu_item_new_with_label("Edit");
-	gtk_widget_set_size_request(edit, 90, 25 );
-	preferences = gtk_menu_item_new_with_label("Preferences");
 
 	gtk_widget_add_accelerator(quit, "activate", accel_group, GDK_q, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE );
 
-	gtk_menu_item_set_submenu ( GTK_MENU_ITEM(file), filemenu );
-	gtk_menu_item_set_submenu ( GTK_MENU_ITEM(preferences), prefs_menu );
 	gtk_menu_item_set_submenu ( GTK_MENU_ITEM(help), help_menu );
+	gtk_menu_item_set_submenu ( GTK_MENU_ITEM(file), filemenu );
 	gtk_menu_shell_append( GTK_MENU_SHELL(help_menu), about );
-	gtk_menu_shell_append( GTK_MENU_SHELL(prefs_menu), edit );
-	gtk_menu_shell_append( GTK_MENU_SHELL(filemenu), new );
-	gtk_menu_shell_append( GTK_MENU_SHELL(filemenu), open );
-	gtk_menu_shell_append( GTK_MENU_SHELL(filemenu), sep );
 	gtk_menu_shell_append( GTK_MENU_SHELL(filemenu), quit );
 	gtk_menu_shell_append( GTK_MENU_SHELL(menubar), file );
-	gtk_menu_shell_append( GTK_MENU_SHELL(menubar), preferences );
 	gtk_menu_shell_append( GTK_MENU_SHELL(menubar), help );
 	gtk_box_pack_start ( GTK_BOX(vbox), menubar, FALSE, FALSE, 3);
 
@@ -297,7 +296,6 @@ int main( int argc, char * argv[] )
 	g_signal_connect ( G_OBJECT ( window), "destroy", G_CALLBACK(gtk_main_quit), NULL );
 	g_signal_connect (add, "clicked", G_CALLBACK(show_add_to_list), window);
 	g_signal_connect (remove, "clicked", G_CALLBACK(remove_from_list),list_selection);
-	g_signal_connect (darea, "expose-event", G_CALLBACK(on_expose_event), NULL);
 	g_signal_connect (G_OBJECT(quit), "activate", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect (G_OBJECT(about), "activate", G_CALLBACK(show_about), G_OBJECT(window));
 
@@ -308,25 +306,13 @@ int main( int argc, char * argv[] )
 
 	gtk_container_set_border_width (GTK_CONTAINER (bottom), 10);
 
-	g_timeout_add(1000, (GSourceFunc) time_handler, (gpointer) window);
+	g_timeout_add(PERIOD, (GSourceFunc) time_handler, (gpointer) list_selection);
 
 	gtk_widget_show_all( window );
 
 	// just for chilling
 
-	int o = 1;
-for( o = 0; o < 15; o++ ){
-
-	char  str[50];
-
-	sprintf(str,"dude that's cool %d", o);
-
-	add_to_list ( list, &str);
-
-}
-
-
-	time_handler(window);
+	time_handler(list);
 	gtk_main ();
 
 	return 0;
