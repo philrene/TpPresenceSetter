@@ -1,6 +1,5 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
-#include <cairo.h>
 #include <time.h>
 
 #define PERIOD 5000
@@ -112,8 +111,9 @@ time_handler(GtkWidget *selection)
 
 	gtk_tree_model_get_value( model, &current, LIST_ITEM, itemvalue );
 
-	set_presence ( g_value_get_string(itemvalue) );
+	set_presence ( itemvalue, 0 );
 
+	g_print("yeah man &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
 
 	/*g_printf("YYYYYYYYYYAAAAAAAAAAAAA  %s\n", g_value_get_string(itemvalue));*/
 	/*itemvalue=g_new0(GValue, 1);*/
@@ -209,7 +209,7 @@ void remove_from_list ( GtkWidget *widget, gpointer selection )
 	}
 }
 
-int main( int argc, char * argv[] )
+int start_gui(  )
 {
 	GtkWidget *window;
 	GtkWidget *list_window;
@@ -237,7 +237,7 @@ int main( int argc, char * argv[] )
 
 	GtkAccelGroup *accel_group = NULL;
 
-	gtk_init ( &argc, &argv );
+	gtk_init ( NULL, NULL );
 	list = gtk_tree_view_new();
 	gtk_tree_view_set_headers_visible( GTK_TREE_VIEW(list), FALSE );
 	list_selection  = gtk_tree_view_get_selection(GTK_TREE_VIEW(list));

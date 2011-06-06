@@ -1,12 +1,12 @@
-PROGS     = presence	 
+PROGS     = setPresence
 CXX	= gcc
-CSRCS     = main.c 
+CSRCS     = main.c gui.c setpresence.c
 
 OBJS      = $(CSRCS:.c=.o)
 
 CFLAGS   += -Wall -g
 
-LIBS	= `pkg-config --libs --cflags telepathy-glib`
+LIBS	= `pkg-config --libs --cflags gtk+-2.0 telepathy-glib`
 ##########################################################################
 
 all:	$(PROGS)
