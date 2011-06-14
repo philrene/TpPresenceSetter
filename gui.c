@@ -86,7 +86,6 @@ static gboolean
 time_handler(GtkWidget *selection)
 {
 
-	fprintf(stderr,"Being called my friend\n");
 
 	GtkListStore *store;
 	GtkTreeModel *model;
@@ -111,18 +110,7 @@ time_handler(GtkWidget *selection)
 
 	gtk_tree_model_get_value( model, &current, LIST_ITEM, itemvalue );
 
-	set_presence ( itemvalue, 0 );
-
-	g_print("yeah man &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
-
-	/*g_printf("YYYYYYYYYYAAAAAAAAAAAAA  %s\n", g_value_get_string(itemvalue));*/
-	/*itemvalue=g_new0(GValue, 1);*/
-	/*gtk_tree_model_get_value( model, &current, IDX_ITEM, itemvalue );*/
-
-	/*[>g_printf("BOooooooAAAA  %u\n", g_value_get_int(itemvalue));<]*/
-
-
-
+	set_presence ( itemvalue, 1 );
 
 	return TRUE;
 }
