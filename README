@@ -1,0 +1,15 @@
+So this uses somes examples from gtk+ and from telepathy-glib
+
+Once again, nothing fancy, build this over a couple of hours.
+
+I'm pretty sure it ain't following the standard of glib/gtk/or whatever else.
+
+Did this to have a stream of status to have some fun with co-workers...
+
+May improve it in the future... sometimes it seg fault... specially if you add/delete
+statuses...
+
+
+Got to love programming!!
+
+- Phil
